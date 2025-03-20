@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepliQ - AI Customer Interaction Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+        }
+        .drag-drop-zone {
+            border: 2px dashed #cbd5e1;
+            transition: all 0.3s ease;
+        }
+        .drag-drop-zone.dragover {
+            border-color: #6366f1;
+            background-color: rgba(99, 102, 241, 0.1);
+        }
+        .plan-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .plan-card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Auth Screen -->
+    <div id="authScreen" class="min-h-screen flex items-center justify-center gradient-bg">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-96">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">RepliQ</h1>
+            <form id="authForm" onsubmit="event.preventDefault(); handleAuth()">
+                <div class="mb-4">
+                    <label class="block text-gray-700 mb-2">Company Email</label>
+                    <input type="email" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-indigo-500">
+                </div>
+                <button class="w-full bg-indigo-500 text-white py-2 rounded-lg hover:bg-indigo-600 transition">Continue</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Plan Selection -->
+    <div id="planScreen" class="hidden min-h-screen p-8">
+        <div class="max-w-4xl mx-auto">
+            <h2 class="text-2xl font-bold mb-8">Choose Your Plan</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="plan-card bg-white p-6 rounded-xl shadow-md cursor-pointer" onclick="selectPlan('email')">
+                    <h3 class="text-xl font-semibold mb-4">📧 Email Automation</h3>
+                    <p class="text-gray-600 mb-4">AI-powered email response system with sentiment analysis</p>
+                    <div class="text-indigo-500 font-bold">$49/month</div>
+                </div>
+                <div class="plan-card bg-white p-6 rounded-xl shadow-md cursor-pointer" onclick="selectPlan('call')">
+                    <h3 class="text-xl font-semibold mb-4">📞 Call Automation</h3>
+                    <p class="text-gray-600 mb-4">Speech-to-text processing and voice optimization</p>
+                    <div class="text-indigo-500 font-bold">$69/month</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboard" class="hidden min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+                <h1 class="text-xl font-bold text-gray-800">RepliQ Dashboard</h1>
+                <div class="flex items-center space-x-4">
+                    <button class="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600">New Query</button>
+                    <div class="w-8 h-8 bg-gray-200 rounded-full"></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="max-w-7xl mx-auto px-4 py-8">
+            <!-- Data Upload Section -->
+            <div class="mb-8">
+                <h2 class="text-lg font-semibold mb-4">Upload Training Data</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="drag-drop-zone p-6 rounded-lg text-center" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'email')">
+                        <i class="fas fa-envelope-open-text text-3xl text-indigo-500 mb-2"></i>
+                        <p>Drag & Drop Email Data</p>
+                    </div>
+                    <div class="drag-drop-zone p-6 rounded-lg text-center" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'call')">
+                        <i class="fas fa-phone-alt text-3xl text-purple-500 mb-2"></i>
+                        <p>Drag & Drop Call Recordings</p>
+                    </div>
+                    <div class="drag-drop-zone p-6 rounded-lg text-center" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'dataset')">
+                        <i class="fas fa-database text-3xl text-pink-500 mb-2"></i>
+                        <p>Drag & Drop Dynamic Dataset</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <div class="bg-white p-6 rounded-xl shadow">
+                    <h3 class="font-semibold mb-4">Response Metrics</h3>
+                    <canvas id="responseChart"></canvas>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow">
+                    <h3 class="font-semibold mb-4">Recent Activity</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+                            <div>
+                                <p class="font-medium">New customer query</p>
+                                <p class="text-sm text-gray-500">2 mins ago</p>
+                            </div>
+                            <span class="text-indigo-500">AI Response Sent</span>
+                        </div>
+                        <!-- More activity items -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Response Interface -->
+            <div class="bg-white p-6 rounded-xl shadow">
+                <h3 class="font-semibold mb-4">AI Response Generator</h3>
+                <div class="mb-4">
+                    <textarea class="w-full p-3 border rounded-lg" placeholder="Enter customer query..."></textarea>
+                </div>
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-4">
+                        <button class="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600">
+                            Generate Response
+                        </button>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm">Sentiment:</span>
+                            <span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">Positive</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button class="p-2 hover:bg-gray-100 rounded">
+                            <i class="fas fa-paper-plane text-indigo-500"></i>
+                        </button>
+                        <button class="p-2 hover:bg-gray-100 rounded">
+                            <i class="fas fa-edit text-purple-500"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Authentication Handler
+        function handleAuth() {
+            localStorage.setItem('authenticated', 'true');
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('planScreen').classList.remove('hidden');
+        }
+
+        // Plan Selection
+        function selectPlan(planType) {
+            const selectedPlans = JSON.parse(localStorage.getItem('selectedPlans') || '[]');
+            if (!selectedPlans.includes(planType)) {
+                selectedPlans.push(planType);
+            }
+            localStorage.setItem('selectedPlans', JSON.stringify(selectedPlans));
+            showDashboard();
+        }
+
+        // Show Dashboard
+        function showDashboard() {
+            document.getElementById('planScreen').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            initializeChart();
+        }
+
+        // Drag & Drop Handlers
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
+        }
+
+        function handleDrop(e, type) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            alert(`Uploaded ${files.length} ${type} files`);
+        }
+
+        // Initialize Sample Chart
+        function initializeChart() {
+            const ctx = document.getElementById('responseChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Response Accuracy',
+                        data: [65, 78, 82, 75, 88, 95],
+                        borderColor: '#6366f1',
+                        tension: 0.4
+                    }]
+                }
+            });
+        }
+
+        // Initial Check
+        if (localStorage.getItem('authenticated')) {
+            document.getElementById('authScreen').classList.add('hidden');
+            if (localStorage.getItem('selectedPlans')) {
+                showDashboard();
+            } else {
+                document.getElementById('planScreen').classList.remove('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
